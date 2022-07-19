@@ -426,27 +426,3 @@ end)
 
 
 
-
-for _, v in pairs(player.GetAll()) do
-	game.ConsoleCommand("sv_cheats 1\n")
-	v:ConCommand("stopsoundscape")
-	game.ConsoleCommand("sv_cheats 0\n")
-end
-
-
-
-
-
-//TO DO:
-
-//Ability to disable water fog without using sv_cheats 1
-//Replacement fog that renders only when in water (or only renders inside water if I can do 
-//that with lua somehow
-
-//some things render behind water blackener (eg fire)
-
-
-//When maps don't have a named light environment, the outdoors light will be configured with the ambient slider, which will work,
-//but objects outside (where natural light would otherwise shine on them) rettain some of the lighting from the sky.
-
-//Button to destroy ambient_generics?
