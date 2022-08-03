@@ -209,13 +209,15 @@ hook.Add( "OnEntityCreated", "UpdateLamps", function( ent )
 
 	if(convar:GetBool()==true) then
 		if ( ent:GetClass() == "env_projectedtexture" ) then
-			timer.Simple(0.01, function() 
-				ent:SetKeyValue("style", "32")
+			timer.Simple(0.001, function()
+				if(ent:IsValid()) then
+					ent:SetKeyValue("style", "32")
+				end
 			end)
 		end
 
 		if ( ent:GetClass() == "gmod_light" ) then
-			timer.Simple(0.01, function() 
+			timer.Simple(0.001, function() 
 				net.Start("Environments_client_changeLight")
 					net.WriteEntity(ent)
 				net.Broadcast()
