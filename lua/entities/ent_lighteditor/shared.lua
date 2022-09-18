@@ -15,8 +15,8 @@ ENT.Editable = true
 function ENT:Initialize()
 
 	BaseClass.Initialize( self )
-	self:SetMaterial( "gmod/edit_sky" )
-	self:SetColor( Color(30, 30, 30, 255) )
+	self:SetMaterial( "light_editor/edit_light" )
+	//self:SetColor( Color(30, 30, 30, 255) )
 	
 	if SERVER then
 
@@ -57,11 +57,4 @@ function ENT:SetupDataTables()
 	self:NetworkVar( "Bool", 7, "RemoveSoundscapes", { KeyName = "rSoundscapes", Edit = { type = "Boolean", order = 8 } } )
 
 	self:NetworkVar( "Bool", 8, "Stopsounds", { KeyName = "stopsounds", Edit = { type = "Boolean", order = 9 } } )
-
-	/*
-	if ( SERVER ) then
-		self:SetAmbientLight(12)
-		self:SetSunlight(12)
-	end
-	*/
 end

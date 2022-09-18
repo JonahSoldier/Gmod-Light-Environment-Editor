@@ -18,7 +18,7 @@ function ENT:Think()
 	//save me having to write as much code
 	local function varChange(last, current, convar)
 		if(current != last) then 
-			if(current == true or current == false) then
+			if(type(current) == "boolean") then
 				
 				if (current) then RunConsoleCommand( convar, "1" ) else RunConsoleCommand( convar, "0" ) end
 			else
@@ -28,8 +28,6 @@ function ENT:Think()
 		end
 		return false
 	end
-
-	//Would be a lot nicer if I could pass by reference in lua
 
 	//light editors
 	if(varChange(self.lastAmblight, self:GetAmbientLight(), "Environment_ambientLightLevel" )) then self.lastAmblight = self:GetAmbientLight() end
@@ -51,11 +49,14 @@ function ENT:Think()
 	if(varChange(self.lastStopSounds, self:GetStopsounds(), "Environment_stopSoundscape" )) then self.lastStopSounds = self:GetStopsounds() end
 	
 
-	
-	
-	
-	
 	self:NextThink(CurTime()+1)
 	return true
 end
-	
+
+
+
+function ENT:OnRemove()
+	//Prevents people who haven't figured out how to use editors from making the map dark for the rest of the session
+	RunConsoleCommand("Environment_ambientLightLevel", 12)
+	RunConsoleCommand("Environment_SunLightLevel", 12)
+end

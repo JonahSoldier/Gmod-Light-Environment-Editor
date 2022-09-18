@@ -1,9 +1,12 @@
+//I need to re-organize this file a bit
+
 
 //Network stuff for client-server communication
 util.AddNetworkString( "NatLight_sendlights" )
 util.AddNetworkString( "Environments_client_redownloadlightmaps" )
 util.AddNetworkString( "Environments_client_changeLight" )
 util.AddNetworkString( "Environments_client_forcedisablesky" )
+util.AddNetworkString( "Environments_client_forceradiosityzero" )
 util.AddNetworkString( "Environments_client_forcedisablespecular" )
 util.AddNetworkString( "Environments_client_getWaterBlacken" )
 util.AddNetworkString( "Environments_client_stopSoundscape" )
@@ -23,24 +26,53 @@ CreateConVar( "Environment_ChangeLightStyle", "1", FCVAR_NONE, "", 0, 1 )
 //Stuff for messing with other convars (So you can fix/hide certain issues automatically for all players)
 CreateConVar( "Environment_ForceDisabledSkybox", "0", FCVAR_NONE, "", 0, 1 )
 CreateConVar( "Environment_ForceDisabledCubemaps", "0", FCVAR_NONE, "", 0, 1 )
+CreateConVar( "Environment_ForceRadiosityZero", "0", FCVAR_NONE, "", 0, 1 )
 
 //The thing that lets you draw a transparent black rectangle over water to make its glow less obvious
 CreateConVar( "Environment_DarkenWater", "0", FCVAR_NONE, "", 0, 1 )
+CreateConVar( "Environment_DarkenRopes", "0", FCVAR_NONE, "", 0, 1 )
 
 
+hook.Add("InitPostEntity", "Environments_init", function() 
+	
+	//make sure we aren't using light styles used by dynamic lights on the map
+	local availableLightStyles = {}
+	
+	for I=13, 64, 1 do 
+		table.insert(availableLightStyles, I)
+	end
+	
+	for k, v in pairs(ents.FindByClass("light")) do
+		table.RemoveByValue( availableLightStyles, v:GetInternalVariable("style"))
+	end
+	for k, v in pairs(ents.FindByClass("env_projectedtexture")) do
+		table.RemoveByValue( availableLightStyles, v:GetInternalVariable("style"))
+	end
+	for k, v in pairs(ents.FindByClass("light_environment")) do
+		table.RemoveByValue( availableLightStyles, v:GetInternalVariable("style"))
+	end
+
+	//If every style number is used print something to console and try to use 64 
+	if(table.IsEmpty(availableLightStyles)) then
+		print("Light/Environment Editor: All lightStyles used, expect weird behaviour")
+		engine.LightStyle(64, "m")
+		availableLightStyles = {64}
+	end
+	
+	
+	SetGlobalInt( "environment_lightstyle", availableLightStyles[1]) 
+	
+	for k, v in pairs(ents.FindByClass("keyframe_rope")) do
+		v.mapEnt = true
+	end
+end)
 
 
 
 cvars.AddChangeCallback( "Environment_ForceDisabledSkybox",  function(convar_name, value_old, value_new)
-	if(value_new == "1") then
-		net.Start("Environments_client_forcedisablesky")
-			net.WriteUInt(0,1)
-		net.Broadcast()
-	else
-		net.Start("Environments_client_forcedisablesky")
-			net.WriteUInt(1,1)
-		net.Broadcast()
-	end
+	net.Start("Environments_client_forcedisablesky")
+		net.WriteUInt(tonumber(value_new),1)
+	net.Broadcast()
 end)
 
 
@@ -51,6 +83,16 @@ cvars.AddChangeCallback( "Environment_ForceDisabledCubemaps",  function(convar_n
 	end
 end)
 
+cvars.AddChangeCallback( "Environment_ForceRadiosityZero",  function(convar_name, value_old, value_new)
+
+	net.Start("Environments_client_forceradiosityzero")
+		if(value_new == "1") then
+			net.WriteUInt(0,2)
+		else
+			net.WriteUInt(3,2)
+		end
+	net.Broadcast()
+end)
 
 concommand.Add( "Environment_Destroy_Beams", function(player)
 
@@ -192,7 +234,8 @@ cvars.AddChangeCallback( "Environment_ChangeLightStyle",  function(convar_name, 
 
 	if(value_new == "1") then
 		for k, v in pairs(projectedTextures) do
-			v:SetKeyValue("style", "32")
+			local style = GetGlobalInt( "environment_lightstyle", 64 )
+			v:SetKeyValue("style", tostring(style))
 		end
 	else
 		for k, v in pairs(projectedTextures) do
@@ -207,38 +250,17 @@ end)
 hook.Add( "OnEntityCreated", "UpdateLamps", function( ent )
 	local convar = GetConVar("Environment_ChangeLightStyle")
 
-	if(convar:GetBool()==true) then
+	if(convar:GetBool()) then
 		if ( ent:GetClass() == "env_projectedtexture" ) then
 			timer.Simple(0.001, function()
 				if(ent:IsValid()) then
-					ent:SetKeyValue("style", "32")
+					local style = GetGlobalInt( "environment_lightstyle", 64 )
+					ent:SetKeyValue("style", tostring(style))
 				end
 			end)
 		end
-
-		if ( ent:GetClass() == "gmod_light" ) then
-			timer.Simple(0.001, function() 
-				net.Start("Environments_client_changeLight")
-					net.WriteEntity(ent)
-				net.Broadcast()
-			end)
-		end
-
 	end
 end )
-
-
-//gameevent.Listen( "player_connect" )
-/*hook.Add("PlayerInitialSpawn", "playerBlackenWater", function(player, 1)
-	timer.Simple(0.5, function()
-		if(GetConVar("Environment_DarkenWater"):GetBool()) then
-			net.Start("Environments_client_getWaterBlacken")
-				net.WriteTable(WaterZones)
-			net.Send(player(data.index+1))
-		end
-	end)
-end)*/
-
 
 net.Receive("Environments_server_requestWaterBlacken", function(len, ply) 
 	if(GetConVar("Environment_DarkenWater"):GetBool()) then
@@ -427,4 +449,27 @@ end)
 
 
 
+cvars.AddChangeCallback( "Environment_DarkenRopes",  function(convar_name, value_old, value_new)
+	
+	if(value_new == "1") then
+		for k, v in pairs(ents.FindByClass("keyframe_rope")) do 
+			if(v.mapEnt) then 
+				if !(v.defaultColour) then v.defaultColour = v:GetColor() end
+				v:SetColor(Color(0,0,0,255))
+			end
+		end
+		for k, v in pairs(ents.FindByClass("move_rope")) do
+			if !(v.defaultColour) then v.defaultColour = v:GetColor() end
+			v:SetColor(Color(0,0,0,255))
+		end
+	else
+		local function resetCol(ropeType)
+			for k, v in pairs(ents.FindByClass(ropeType)) do
+				v:SetColor(v.defaultColour)
+			end
+		end
+		resetCol("move_rope")
+		resetCol("keyframe_rope")
 
+	end	
+end)
