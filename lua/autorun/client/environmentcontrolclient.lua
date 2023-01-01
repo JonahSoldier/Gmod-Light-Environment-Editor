@@ -9,14 +9,6 @@ function DynamicLight( index, elight )
 end
 //Cleaner than copying the code for gmod's light tool to change a single value and should mean most dynamic lights from other addons will work too
 
-
-
-hook.Add( "InitPostEntity", "playerBlackenWaterRequest", function()
-	net.Start( "Environments_server_requestWaterBlacken" )
-	net.SendToServer()
-end)
-
-
 net.Receive("Environments_client_redownloadlightmaps", function( len, ply )
 	render.RedownloadAllLightmaps(true, true)
 end)
@@ -72,44 +64,3 @@ cvars.AddChangeCallback( "r_radiosity",  function(convar_name, value_old, value_
 		end
 	end
 end)
-
-
-net.Receive("Environments_client_getWaterBlacken", function( len, ply )
-	waterZones = net.ReadTable()
-end)
-
-
-
-
-hook.Add( "PostDrawTranslucentRenderables", "Waterblackener", function()
-
-	local shouldDarkenWater = GetGlobalBool( "environment_darkenWater", false)
-
-	if(shouldDarkenWater && waterZones ~= nil) then
-		for k, v in pairs(waterZones) do
-			//zvar
-			//mins
-			//maxs
-			local zLev = v[1]
-			local xMin = v[2][1]
-			local yMin = v[2][2]
-			local xMax = v[3][1]
-			local yMax = v[3][2]
-
-			local ambLightLev = GetGlobalInt( "environment_ambientLightLevel", 12 )
-		
-			render.SetColorMaterial()
-
-			//Render higher up at a distance to avoid z fighting
-			local distToBox = Vector((xMin+xMax)/2,(yMin+yMax)/2,zLev) - EyePos()
-			local adjustHeight = (distToBox[3]*distToBox[3])*0.0000005
-
-			if(adjustHeight>5) then
-				adjustHeight = 5
-			end
-
-			render.DrawBox( Vector(0,0,0), Angle(0,0,0), Vector(xMin,yMin,zLev-(adjustHeight+2)),Vector(xMax,yMax,zLev+adjustHeight+0.5), Color( 0, 0, 0, (255/ambLightLev)-2 ) )
-		end
-	end
-
-end )

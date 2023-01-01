@@ -13,10 +13,10 @@ hook.Add( "PopulateToolMenu", "EnvironmentMenu", function()
 		panel:NumSlider( "Sun Light", "Environment_SunLightLevel", 1, 26, 0 )
 
 		panel:CheckBox( "Enable lamp/light fixer", "Environment_ChangeLightStyle" )
+		panel:CheckBox( "Darken Water", "Environment_DarkenWater" )
 		panel:CheckBox( "Forcibly disable the 3D skybox for all players", "Environment_ForceDisabledSkybox" )
 		panel:CheckBox( "Automatically set mat_specular to 0 for all players", "Environment_ForceDisabledCubemaps" )
 		panel:CheckBox( "r_radiosity 0 for all players", "Environment_ForceRadiosityZero" )
-		panel:CheckBox( "Artificially darken water (will cause a lag spike when activated)", "Environment_DarkenWater" )
 		panel:CheckBox( "Darken ropes", "Environment_DarkenRopes" )
 
 		panel:Button( "Remove Light Beams", "Environment_Destroy_Beams", nil )
