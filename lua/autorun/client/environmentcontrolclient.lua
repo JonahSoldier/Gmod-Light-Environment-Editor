@@ -48,18 +48,20 @@ net.Receive("Environments_client_forcedisablespecular", function( len, ply )
 end)
 
 cvars.AddChangeCallback( "r_3dsky",  function(convar_name, value_old, value_new)
-
+	if not GetConvar then return end 
+	
 	if(GetConVar("Environment_ForceDisabledSkybox"):GetBool()) then
-		if(value_new == "1") then
+		if not(value_new == "0") then
 			RunConsoleCommand( "r_3dsky", 0 )
 		end
 	end
 end)
 
 cvars.AddChangeCallback( "r_radiosity",  function(convar_name, value_old, value_new)
+	if not GetConvar then return end  
 
 	if(GetConVar("Environment_ForceRadiosityZero"):GetBool()) then
-		if(value_new != "0") then
+		if not(value_new == "0") then
 			RunConsoleCommand( "r_radiosity", 0 )
 		end
 	end
