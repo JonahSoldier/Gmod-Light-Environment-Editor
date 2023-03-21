@@ -58,16 +58,19 @@ hook.Add("InitPostEntity", "Environments_init", function()
 	
 	SetGlobalInt( "environment_lightstyle", availableLightStyles[1]) 
 	
-	for k, v in pairs(ents.FindByClass("keyframe_rope")) do
+	for k, v in ipairs(ents.FindByClass("keyframe_rope")) do
 		v.mapEnt = true
 	end
 
 	//Stuff for the new less terrible water darkening
 	lightEnv_defaultWaterFogs = {}
 	
-	for k, v in pairs(game.GetWorld():GetBrushSurfaces()) do
+	for k, v in ipairs(game.GetWorld():GetBrushSurfaces()) do
 		if v:IsWater() then
-			table.insert(lightEnv_defaultWaterFogs, {["Surface"] = v, ["Fog"] = v:GetMaterial():GetVector("$fogcolor") } )
+			local fogCol = v:GetMaterial():GetVector("$fogcolor")
+			if fogCol then 
+				table.insert(lightEnv_defaultWaterFogs, {["Surface"] = v, ["Fog"] = fogCol } )
+			end
 		end
 	end
 
@@ -264,7 +267,6 @@ function lightEnv_updateDarkenWater()
 		for k, v in pairs(lightEnv_defaultWaterFogs) do
 			local darken = GetGlobalInt("environment_ambientLightLevel")/12
 			v.Surface:GetMaterial():SetVector("$fogcolor", v.Fog*darken)
-			
 		end
 	else
 		for k, v in pairs(lightEnv_defaultWaterFogs) do
