@@ -1,8 +1,5 @@
-
-
 AddCSLuaFile()
 DEFINE_BASECLASS( "base_edit" )
-
 
 ENT.Category = "Editors"
 ENT.PrintName = "Light/Environment editor"
@@ -16,8 +13,6 @@ function ENT:Initialize()
 	BaseClass.Initialize( self )
 	self:SetMaterial( "light_editor/edit_light" )
 end
-
-
 
 function ENT:SetupDataTables()
 
@@ -38,20 +33,26 @@ function ENT:SetupDataTables()
 
 	self:NetworkVar( "Bool", 10, "Stopsounds", { KeyName = "stopsounds", Edit = { type = "Boolean", order = 13 } } )
 
-	if SERVER then //Change the convars when the editor's variables are changed
-		self:NetworkVarNotify( "AmbientLight", function(name, old, new) RunConsoleCommand("Environment_ambientLightLevel", new) end )
-		self:NetworkVarNotify( "Sunlight", function(name, old, new) RunConsoleCommand("Environment_SunLightLevel", new) end )
-		
+	self:NetworkVar( "Bool", 11, "DisableStaticAmbLight", { KeyName = "disableStaticAmb", Edit = { type = "Boolean", order = 14 } } )
+	self:NetworkVar( "Bool", 12, "DisableStaticSelfIllum", { KeyName = "disableStaticIllum", Edit = { type = "Boolean", order = 15 } } )
+
+	if SERVER then --Change the convars when the editor's variables are changed
+		self:NetworkVarNotify( "AmbientLight", function(name, old, new)
+			if self.lightEnv_suppressUpdate then self.lightEnv_suppressUpdate = nil return end
+			RunConsoleCommand("Environment_ambientLightLevel", new)
+		end )
+		self:NetworkVarNotify( "Sunlight", function(name, old, new)
+			if self.lightEnv_suppressUpdate then self.lightEnv_suppressUpdate = nil return end
+			RunConsoleCommand("Environment_SunLightLevel", new)
+		end )
+
 		local function setupNotify(var, convar)
-			self:NetworkVarNotify(var, function(ent, name, old, new) 
-				if new then
-					RunConsoleCommand(convar, "1")
-				else
-					RunConsoleCommand(convar, "0")
-				end 
+			self:NetworkVarNotify(var, function(ent, name, old, new)
+				local val = (new and "1") or "0"
+				RunConsoleCommand(convar, val)
 			end)
 		end
-		
+
 		setupNotify("DarkWater", "Environment_DarkenWater")
 		setupNotify("Disable3DSky", "Environment_ForceDisabledSkybox")
 		setupNotify("MatSpecular", "Environment_ForceDisabledCubemaps")
@@ -65,5 +66,52 @@ function ENT:SetupDataTables()
 		setupNotify("RemoveSoundscapes", "Environment_Destroy_Soundscapes")
 
 		setupNotify("Stopsounds", "Environment_stopsoundscape")
+
+		setupNotify("DisableStaticAmbLight", "Environment_DisableStaticAmbientLighting")
+		setupNotify("DisableStaticSelfIllum", "Environment_DisableStaticSelfIllum")
+
+		--Grab whatever the current values are, without breaking existing saves/dupes
+		timer.Simple(0, function()
+			self.lightEnv_suppressUpdate = true
+			self:SetAmbientLight(GetConVar("Environment_ambientLightLevel"):GetInt())
+			self.lightEnv_suppressUpdate = true
+			self:SetSunlight(GetConVar("Environment_sunLightLevel"):GetInt())
+
+			self:SetDarkWater(GetConVar("Environment_DarkenWater"):GetBool())
+			self:SetDisable3DSky(GetConVar("Environment_ForceDisabledSkybox"):GetBool())
+			self:Setr_radiosityZero(GetConVar("Environment_ForceRadiosityZero"):GetBool())
+			self:SetMatSpecular(GetConVar("Environment_ForceDisabledCubemaps"):GetBool())
+			self:SetDarkRopes(GetConVar("Environment_DarkenRopes"):GetBool())
+
+			self:SetDisableStaticSelfIllum(GetConVar("Environment_DisableStaticSelfIllum"):GetBool())
+		end)
 	end
 end
+
+--Keep editor values consistent with console values
+cvars.AddChangeCallback("Environment_ambientLightLevel", function(convar_name, value_old, value_new)
+	for i, v in ipairs(ents.FindByClass("ent_lighteditor")) do
+		v.lightEnv_suppressUpdate = true
+		v["Set" .. "AmbientLight"](v, tonumber(value_new))
+	end
+end)
+cvars.AddChangeCallback("Environment_SunLightLevel", function(convar_name, value_old, value_new)
+	for i, v in ipairs(ents.FindByClass("ent_lighteditor")) do
+		v.lightEnv_suppressUpdate = true
+		v["Set" .. "Sunlight"](v, tonumber(value_new))
+	end
+end)
+
+local function cvarUpdate(var, convar)
+	cvars.AddChangeCallback(convar, function(convar_name, value_old, value_new)
+		for i, v in ipairs(ents.FindByClass("ent_lighteditor")) do
+			v["Set" .. var](v, tobool(value_new))
+		end
+	end)
+end
+cvarUpdate("DarkWater", "Environment_DarkenWater")
+cvarUpdate("Disable3DSky", "Environment_ForceDisabledSkybox")
+cvarUpdate("MatSpecular", "Environment_ForceDisabledCubemaps")
+cvarUpdate("r_radiosityZero", "Environment_ForceRadiosityZero")
+cvarUpdate("DarkRopes", "Environment_DarkenRopes")
+cvarUpdate( "DisableStaticSelfIllum", "Environment_DisableStaticSelfIllum" )
