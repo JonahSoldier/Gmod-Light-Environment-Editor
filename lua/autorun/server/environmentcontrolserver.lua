@@ -69,7 +69,7 @@ hook.Add("InitPostEntity", "Environments_init", function()
 			if fogCol then
 				table.insert(lightEnv.defaultWaterFogs, {
 					["Material"] = mat,
-					["Fog"] = fogCol
+					["Fog"] = fogCol * 1 --Create a copy not a reference
 				})
 			end
 		end
