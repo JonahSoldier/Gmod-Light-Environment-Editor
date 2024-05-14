@@ -19,13 +19,21 @@ hook.Add( "PopulateToolMenu", "EnvironmentMenu", function()
 		panel:CheckBox( "r_radiosity 0 for all players", "Environment_ForceRadiosityZero" )
 		panel:CheckBox( "Darken ropes", "Environment_DarkenRopes" )
 
-		panel:Button( "Remove Light Beams", "Environment_Destroy_Beams", nil )
-		panel:Button( "Remove Ambient_Generic (sound emitters)", "Environment_Destroy_AmbientGeneric", nil )
-		panel:Button( "Remove Sprites", "Environment_Destroy_Sprites", nil )
-		panel:Button( "Remove Smoke", "Environment_Destroy_SmokeVolume", nil )
-		panel:Button( "Remove Soundscapes", "Environment_Destroy_Soundscapes", nil )
 
-		panel:Button( "Stop sounds&soundscapes (Requires sv_cheats 1)", "Environment_stopsoundscape", nil )
+		local btn = panel:Button( "Remove Light Beams", "Environment_Destroy_Beams")
+		btn:DockMargin(0,20,0,0)
+		panel:CheckBox( "Hide Light Beams (unreliable)", "Environment_Hide_Beams" )
+
+		panel:Button( "Remove Sprites", "Environment_Destroy_Sprites")
+		panel:CheckBox( "Hide Sprites (unreliable)", "Environment_Hide_Sprites")
+
+		panel:Button( "Remove Ambient_Generic (sound emitters)", "Environment_Destroy_AmbientGeneric")
+		panel:Button( "Remove Smoke", "Environment_Destroy_SmokeVolume")
+		panel:Button( "Remove Particle Systems", "Environment_Destroy_Particles")
+		panel:Button( "Remove Soundscapes", "Environment_Destroy_Soundscapes")
+
+		panel:Button( "Stop sounds&soundscapes (Requires sv_cheats 1)", "Environment_stopsoundscape")
+
 
 		local staticAmbButton = vgui.Create("DButton", panel)
 		staticAmbButton:DockMargin( 11, 35, 11, 0 )

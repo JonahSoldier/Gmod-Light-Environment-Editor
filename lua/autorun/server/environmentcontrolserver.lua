@@ -25,14 +25,18 @@ local env_darkenWater_cv = CreateConVar("Environment_DarkenWater", "1", FCVAR_NO
 local env_darkenRopes_cv = CreateConVar("Environment_DarkenRopes", "0", FCVAR_NONE, "", 0, 1)
 
 --Map Materials
---local env_noStaticAmbLight_cv = CreateConVar("Environment_DisableStaticAmbientLighting", "0", FCVAR_NONE, "", 0, 1)
 local env_noStaticSelfIllum = CreateConVar("Environment_DisableStaticSelfIllum", "0", FCVAR_NONE, "", 0, 1)
-
 
 --Should values be reset on cleanup
 local env_resetOnCleanup = CreateConVar("Environment_ResetOnCleanup", "1", FCVAR_NONE, "", 0, 1)
 
+--Hiding things
+local env_hideBeams_cv = CreateConVar("Environment_Hide_Beams", "0", FCVAR_NONE, "", 0, 1)
+local env_hideSprites_cv = CreateConVar("Environment_Hide_Sprites", "0", FCVAR_NONE, "", 0, 1)
+
 include("lightenv/sv_staticproplighting.lua")
+
+
 
 hook.Add("InitPostEntity", "Environments_init", function()
 	--make sure we aren't using light styles used by dynamic lights on the map
@@ -79,6 +83,7 @@ hook.Add("InitPostEntity", "Environments_init", function()
 end)
 
 
+--TODO: force r_drawdetailprops 0
 cvars.AddChangeCallback("Environment_ForceDisabledSkybox", function(convar_name, value_old, value_new)
 	net.Start("Environments_client_forcedisablesky")
 	net.WriteBool(tobool(value_new))
@@ -111,17 +116,25 @@ local function setupDestroyCmd(name, type)
 end
 
 setupDestroyCmd("Environment_Destroy_Beams", "beam")
-setupDestroyCmd("Environment_Destroy_SmokeVolume", "func_smokevolume")
+setupDestroyCmd("Environment_Destroy_Particles", "info_particle_system")
 setupDestroyCmd("Environment_Destroy_Soundscapes", "env_soundscape")
 setupDestroyCmd("Environment_Destroy_AmbientGeneric", "ambient_generic")
 
 concommand.Add("Environment_Destroy_Sprites", function(player)
 	if not player:IsSuperAdmin() then return end
-	Glows = ents.FindByClass("env_sprite")
+	local Glows = ents.FindByClass("env_sprite")
 	table.Add(Glows, ents.FindByClass("env_lightglow"))
 	table.Add(Glows, ents.FindByClass("env_sprite_oriented"))
 	table.Add(Glows, ents.FindByClass("env_sprite_clientside"))
 	for i, v in ipairs(Glows) do
+		v:Remove()
+	end
+end)
+concommand.Add("Environment_Destroy_SmokeVolume", function(player)
+	if not player:IsSuperAdmin() then return end
+	local Smokes = ents.FindByClass("func_smokevolume")
+	table.Add(Smokes, ents.FindByClass("env_smokestack"))
+	for i, v in ipairs(Smokes) do
 		v:Remove()
 	end
 end)
@@ -130,6 +143,30 @@ concommand.Add("Environment_stopsoundscape", function(player)
 	if not player:IsSuperAdmin() then return end
 	net.Start("Environments_client_stopSoundscape")
 	net.Broadcast()
+end)
+
+
+cvars.AddChangeCallback("Environment_Hide_Sprites", function(convar_name, value_old, value_new)
+	local Glows = ents.FindByClass("env_sprite")
+	table.Add(Glows, ents.FindByClass("env_lightglow"))
+	table.Add(Glows, ents.FindByClass("env_sprite_oriented"))
+	table.Add(Glows, ents.FindByClass("env_sprite_clientside"))
+	local shouldDraw = tobool(value_new)
+	for i, v in ipairs(Glows) do
+		if v:GetNoDraw() then
+			print(v)
+		end
+	end
+	for i, v in ipairs(Glows) do
+		v:SetNoDraw(shouldDraw)
+	end
+end)
+
+cvars.AddChangeCallback("Environment_Hide_Beams", function(convar_name, value_old, value_new)
+	local shouldDraw = tobool(value_new)
+	for i, v in ipairs(ents.FindByClass("beam")) do
+		v:SetNoDraw(shouldDraw)
+	end
 end)
 
 
@@ -184,6 +221,7 @@ cvars.AddChangeCallback("Environment_DarkenWater", function(convar_name, value_o
 end)
 
 function lightEnv_updateDarkenWater()
+	if not lightEnv.defaultWaterFogs then return end
 	local darken = GetGlobalInt("environment_ambientLightLevel") / 12
 	darken = (env_darkenWater_cv:GetBool() and darken) or 1
 	for i, v in ipairs(lightEnv.defaultWaterFogs) do
@@ -231,4 +269,7 @@ hook.Add( "PreCleanupMap", "Environment_Cleanup", function()
 	env_radiosityZero_cv:SetBool(false)
 
 	env_noStaticSelfIllum:SetBool(false)
+
+	env_hideBeams_cv:SetBool(false)
+	env_hideSprites_cv:SetBool(false)
 end )

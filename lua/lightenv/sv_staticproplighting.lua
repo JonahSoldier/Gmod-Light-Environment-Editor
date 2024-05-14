@@ -33,7 +33,7 @@ local function disableStaticAmbientLighting()
 		return
 	end
 
-	local flatNormalMat = Material("lightenv/flatnormal.png")
+	local flatNormalMat = Material("lightEnv/flat_normal")
 	local flatNormal = flatNormalMat:GetTexture("$basetexture")
 
 	for i, v in ipairs(lightEnv.staticPropMats) do

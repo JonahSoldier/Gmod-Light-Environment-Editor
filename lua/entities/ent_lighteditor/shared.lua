@@ -48,8 +48,19 @@ function ENT:SetupDataTables()
 
 		local function setupNotify(var, convar)
 			self:NetworkVarNotify(var, function(ent, name, old, new)
+				if self.lightEnv_suppressUpdate then self.lightEnv_suppressUpdate = nil return end
 				local val = (new and "1") or "0"
 				RunConsoleCommand(convar, val)
+			end)
+		end
+
+		--Destroy CVars would previously always run in saves, because I wrongly assumed just having the default value
+		--wouldn't trigger this function. I'm a bit surprised literally no one complained about this, given a lot of
+		--people seem to use the editor entity.
+		local function setupNotifyDestroy(var, convar)
+			self:NetworkVarNotify(var, function(ent, name, old, new)
+				if not new then return end
+				RunConsoleCommand(convar)
 			end)
 		end
 
@@ -59,16 +70,17 @@ function ENT:SetupDataTables()
 		setupNotify("r_radiosityZero", "Environment_ForceRadiosityZero")
 		setupNotify("DarkRopes", "Environment_DarkenRopes")
 
-		setupNotify("RemoveLightBeams", "Environment_Destroy_Beams")
-		setupNotify("RemoveAmbient_generics", "Environment_Destroy_AmbientGeneric")
-		setupNotify("RemoveSprites", "Environment_Destroy_Sprites")
-		setupNotify("RemoveSmoke", "Environment_DestroySmokeVolume")
-		setupNotify("RemoveSoundscapes", "Environment_Destroy_Soundscapes")
+		setupNotifyDestroy("RemoveLightBeams", "Environment_Destroy_Beams")
+		setupNotifyDestroy("RemoveAmbient_generics", "Environment_Destroy_AmbientGeneric")
+		setupNotifyDestroy("RemoveSprites", "Environment_Destroy_Sprites")
+		setupNotifyDestroy("RemoveSmoke", "Environment_DestroySmokeVolume")
+		setupNotifyDestroy("RemoveSoundscapes", "Environment_Destroy_Soundscapes")
 
 		setupNotify("Stopsounds", "Environment_stopsoundscape")
 
-		setupNotify("DisableStaticAmbLight", "Environment_DisableStaticAmbientLighting")
+		setupNotifyDestroy("DisableStaticAmbLight", "Environment_DisableStaticAmbientLighting")
 		setupNotify("DisableStaticSelfIllum", "Environment_DisableStaticSelfIllum")
+
 
 		--Grab whatever the current values are, without breaking existing saves/dupes
 		timer.Simple(0, function()
@@ -77,12 +89,18 @@ function ENT:SetupDataTables()
 			self.lightEnv_suppressUpdate = true
 			self:SetSunlight(GetConVar("Environment_sunLightLevel"):GetInt())
 
+			self.lightEnv_suppressUpdate = true
 			self:SetDarkWater(GetConVar("Environment_DarkenWater"):GetBool())
+			self.lightEnv_suppressUpdate = true
 			self:SetDisable3DSky(GetConVar("Environment_ForceDisabledSkybox"):GetBool())
+			self.lightEnv_suppressUpdate = true
 			self:Setr_radiosityZero(GetConVar("Environment_ForceRadiosityZero"):GetBool())
+			self.lightEnv_suppressUpdate = true
 			self:SetMatSpecular(GetConVar("Environment_ForceDisabledCubemaps"):GetBool())
+			self.lightEnv_suppressUpdate = true
 			self:SetDarkRopes(GetConVar("Environment_DarkenRopes"):GetBool())
 
+			self.lightEnv_suppressUpdate = true
 			self:SetDisableStaticSelfIllum(GetConVar("Environment_DisableStaticSelfIllum"):GetBool())
 		end)
 	end
