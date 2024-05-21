@@ -49,7 +49,6 @@ end
 local function disableStaticSelfIllum()
 	if not lightEnv.staticPropMats then
 		readStaticPropMaterials(disableStaticSelfIllum)
-		print("Light/Environment Editor: Disabled self-illumination on static props materials")
 		return
 	end
 	lightEnv.staticPropMatFlags = lightEnv.staticPropMatFlags or {}
@@ -61,8 +60,9 @@ local function disableStaticSelfIllum()
 		local newFlags = bit.band(flags, 1073741759)
 		mat:SetInt("$flags", newFlags)
 	end
-	print("Light/Environment Editor: Re-Enabled self-illumination on static props materials")
+	print("Light/Environment Editor: Disabled self-illumination on static props materials")
 end
+
 
 concommand.Add("Environment_DisableStaticAmbientLighting", function(player)
 	if not player:IsSuperAdmin() then return end
@@ -81,4 +81,5 @@ cvars.AddChangeCallback( "Environment_DisableStaticSelfIllum", function(convar_n
 		local newFlags = bit.bor(mat:GetInt("$flags"), lightEnv.staticPropMatFlags[i])
 		mat:SetInt("$flags", newFlags)
 	end
+	print("Light/Environment Editor: Re-Enabled self-illumination on static props materials")
 end)

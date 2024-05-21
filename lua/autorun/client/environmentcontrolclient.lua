@@ -22,6 +22,10 @@ net.Receive("Environments_client_forcedisablesky", function(len, ply)
 	RunConsoleCommand("r_3dsky", (net.ReadBool() and 0) or 1)
 end)
 
+net.Receive("Environments_client_forcedisabledetailprops", function(len, ply)
+	RunConsoleCommand("r_drawdetailprops", (net.ReadBool() and 0) or 1)
+end)
+
 net.Receive("Environments_client_forceradiosityzero", function(len, ply)
 	local newValue = (net.ReadBool() and 0) or 3
 	LocalPlayer():ChatPrint("Changing r_radiosity to " .. tostring(newValue) .. " in 5 seconds.")
@@ -37,6 +41,13 @@ local skyboxConvar = GetConVar("Environment_ForceDisabledSkybox")
 cvars.AddChangeCallback("r_3dsky", function(convar_name, value_old, value_new)
 	if skyboxConvar:GetBool() and tobool(value_new) then
 		RunConsoleCommand("r_3dsky", 0)
+	end
+end)
+
+local detailPropsConvar = GetConVar("Environment_ForceDisabledDetailProps")
+cvars.AddChangeCallback("r_drawdetailprops", function(convar_name, value_old, value_new)
+	if detailPropsConvar:GetBool() and tobool(value_new) then
+		RunConsoleCommand("r_drawdetailprops", 0)
 	end
 end)
 

@@ -3,6 +3,7 @@ lightEnv = {}
 util.AddNetworkString("Environments_client_redownloadlightmaps")
 util.AddNetworkString("Environments_client_changeLight")
 util.AddNetworkString("Environments_client_forcedisablesky")
+util.AddNetworkString("Environments_client_forcedisabledetailprops")
 util.AddNetworkString("Environments_client_forceradiosityzero")
 util.AddNetworkString("Environments_client_forcedisablespecular")
 util.AddNetworkString("Environments_client_stopSoundscape")
@@ -18,6 +19,7 @@ local env_changeLightStyle_cv = CreateConVar("Environment_ChangeLightStyle", "1"
 --Stuff for messing with other convars (So you can fix/hide certain issues automatically for all players)
 local env_disableSkyBox_cv = CreateConVar("Environment_ForceDisabledSkybox", "0", FCVAR_NONE, "", 0, 1)
 local env_disableCubemaps_cv = CreateConVar("Environment_ForceDisabledCubemaps", "0", FCVAR_NONE, "", 0, 1)
+local env_disableDetailProps_cv = CreateConVar("Environment_ForceDisabledDetailProps", "0", FCVAR_NONE, "", 0, 1)
 local env_radiosityZero_cv = CreateConVar("Environment_ForceRadiosityZero", "0", FCVAR_NONE, "", 0, 1)
 
 --Water fog darkening
@@ -86,7 +88,7 @@ end)
 --TODO: force r_drawdetailprops 0
 cvars.AddChangeCallback("Environment_ForceDisabledSkybox", function(convar_name, value_old, value_new)
 	net.Start("Environments_client_forcedisablesky")
-	net.WriteBool(tobool(value_new))
+		net.WriteBool(tobool(value_new))
 	net.Broadcast()
 end)
 
@@ -99,7 +101,12 @@ end)
 
 cvars.AddChangeCallback("Environment_ForceRadiosityZero", function(convar_name, value_old, value_new)
 	net.Start("Environments_client_forceradiosityzero")
-	net.WriteBool(tobool(value_new))
+		net.WriteBool(tobool(value_new))
+	net.Broadcast()
+end)
+cvars.AddChangeCallback("Environment_ForceDisabledDetailProps", function(convar_name, value_old, value_new)
+	net.Start("Environments_client_forcedisabledetailprops")
+		net.WriteBool(tobool(value_new))
 	net.Broadcast()
 end)
 
@@ -266,6 +273,7 @@ hook.Add( "PreCleanupMap", "Environment_Cleanup", function()
 
 	env_disableSkyBox_cv:SetBool(false)
 	env_disableCubemaps_cv:SetBool(false)
+	env_disableDetailProps_cv:SetBool(false)
 	env_radiosityZero_cv:SetBool(false)
 
 	env_noStaticSelfIllum:SetBool(false)

@@ -16,6 +16,7 @@ hook.Add( "PopulateToolMenu", "EnvironmentMenu", function()
 		panel:CheckBox( "Darken Water", "Environment_DarkenWater" )
 		panel:CheckBox( "Forcibly disable the 3D skybox for all players", "Environment_ForceDisabledSkybox" )
 		panel:CheckBox( "Automatically set mat_specular to 0 for all players", "Environment_ForceDisabledCubemaps" )
+		panel:CheckBox( "Disable detail props for all players", "Environment_ForceDisabledDetailProps" )
 		panel:CheckBox( "r_radiosity 0 for all players", "Environment_ForceRadiosityZero" )
 		panel:CheckBox( "Darken ropes", "Environment_DarkenRopes" )
 
@@ -29,7 +30,7 @@ hook.Add( "PopulateToolMenu", "EnvironmentMenu", function()
 
 		panel:Button( "Remove Ambient_Generic (sound emitters)", "Environment_Destroy_AmbientGeneric")
 		panel:Button( "Remove Smoke", "Environment_Destroy_SmokeVolume")
-		panel:Button( "Remove Particle Systems", "Environment_Destroy_Particles")
+		panel:Button( "Remove Particle Emitters", "Environment_Destroy_Particles")
 		panel:Button( "Remove Soundscapes", "Environment_Destroy_Soundscapes")
 
 		panel:Button( "Stop sounds&soundscapes (Requires sv_cheats 1)", "Environment_stopsoundscape")
