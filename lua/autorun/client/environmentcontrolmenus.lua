@@ -1,32 +1,60 @@
+local function lightEnv_updateCVar(newVal, cvarName)
+	if LocalPlayer():IsListenServerHost() then return end 
 
+	net.Start("Environments_server_setcv")
+		net.WriteString(cvarName)
+
+		if isbool(newVal) then
+			net.WriteUInt(0, 2)
+			net.WriteBool(newVal)
+		elseif isnumber(newVal) then
+			net.WriteUInt(1, 2)
+			net.WriteUInt(newVal, 8)
+		elseif isstring(newVal) then
+			net.WriteUInt(2, 2)
+			net.WriteString(newVal)
+		end
+	net.SendToServer()
+end
 
 hook.Add( "PopulateToolMenu", "EnvironmentMenu", function()
-
 	spawnmenu.AddToolMenuOption( "Utilities", "Admin", "EnvironmentControl", "Environment Control", "", "", function( panel )
-
 		panel:ClearControls()
 
+		local skyName	 = panel:TextEntry( "SkyBox Texture", "sv_skyname" )
+		function skyName:OnEnter(newVal) lightEnv_updateCVar(newVal, "sv_skyname") end
 
-		panel:TextEntry( "SkyBox Texture", "sv_skyname" )
+		local aLight	= panel:NumSlider( "Ambient Light", "Environment_ambientLightLevel", 1, 26, 0 )
+		local sLight	= panel:NumSlider( "Sun Light", "Environment_SunLightLevel", 1, 26, 0 )
+		function aLight:OnValueChanged(newVal) lightEnv_updateCVar(newVal, "Environment_ambientLightLevel") end
+		function sLight:OnValueChanged(newVal) lightEnv_updateCVar(newVal, "Environment_SunLightLevel") end
 
-		panel:NumSlider( "Ambient Light", "Environment_ambientLightLevel", 1, 26, 0 )
-		panel:NumSlider( "Sun Light", "Environment_SunLightLevel", 1, 26, 0 )
+		local lFixer	= panel:CheckBox( "Enable lamp/light fixer", "Environment_ChangeLightStyle" )
+		local dWater	= panel:CheckBox( "Darken Water", "Environment_DarkenWater" )
+		local d3DSky	= panel:CheckBox( "Forcibly disable the 3D skybox for all players", "Environment_ForceDisabledSkybox" )
+		local matSpec	= panel:CheckBox( "Automatically set mat_specular to 0 for all players", "Environment_ForceDisabledCubemaps" )
+		local dDetail	= panel:CheckBox( "Disable detail props for all players", "Environment_ForceDisabledDetailProps" )
+		local dRad		= panel:CheckBox( "r_radiosity 0 for all players", "Environment_ForceRadiosityZero" )
+		local dRope		= panel:CheckBox( "Darken ropes", "Environment_DarkenRopes" )
+		function lFixer:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_ChangeLightStyle") end
+		function dWater:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_DarkenWater") end
+		function d3DSky:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_ForceDisabledSkybox") end
+		function matSpec:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_ForceDisabledCubemaps") end
+		function dDetail:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_ForceDisabledDetailProps") end
+		function dRad:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_ForceRadiosityZero") end
+		function dRope:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_DarkenRopes") end
 
-		panel:CheckBox( "Enable lamp/light fixer", "Environment_ChangeLightStyle" )
-		panel:CheckBox( "Darken Water", "Environment_DarkenWater" )
-		panel:CheckBox( "Forcibly disable the 3D skybox for all players", "Environment_ForceDisabledSkybox" )
-		panel:CheckBox( "Automatically set mat_specular to 0 for all players", "Environment_ForceDisabledCubemaps" )
-		panel:CheckBox( "Disable detail props for all players", "Environment_ForceDisabledDetailProps" )
-		panel:CheckBox( "r_radiosity 0 for all players", "Environment_ForceRadiosityZero" )
-		panel:CheckBox( "Darken ropes", "Environment_DarkenRopes" )
 
-
-		local btn = panel:Button( "Remove Light Beams", "Environment_Destroy_Beams")
+		local btn		= panel:Button( "Remove Light Beams", "Environment_Destroy_Beams")
 		btn:DockMargin(0,20,0,0)
-		panel:CheckBox( "Hide Light Beams (unreliable)", "Environment_Hide_Beams" )
+		local hLight	= panel:CheckBox( "Hide Light Beams (unreliable)", "Environment_Hide_Beams" )
+		function hLight:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_Hide_Beams") end
+
 
 		panel:Button( "Remove Sprites", "Environment_Destroy_Sprites")
-		panel:CheckBox( "Hide Sprites (unreliable)", "Environment_Hide_Sprites")
+		local hSprites	= panel:CheckBox( "Hide Sprites (unreliable)", "Environment_Hide_Sprites")
+		function hSprites:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_Hide_Sprites") end
+
 
 		panel:Button( "Remove Ambient_Generic (sound emitters)", "Environment_Destroy_AmbientGeneric")
 		panel:Button( "Remove Smoke", "Environment_Destroy_SmokeVolume")
@@ -75,7 +103,8 @@ hook.Add( "PopulateToolMenu", "EnvironmentMenu", function()
 			frame:SizeToContents()
 		end
 
-		panel:CheckBox( "Disable Static Prop Self-Illumination", "Environment_DisableStaticSelfIllum" )
+		local dIllum = panel:CheckBox( "Disable Static Prop Self-Illumination", "Environment_DisableStaticSelfIllum" )
+		function dIllum:OnChange(newVal) lightEnv_updateCVar(newVal, "Environment_DisableStaticSelfIllum") end
 	end )
 end )
 

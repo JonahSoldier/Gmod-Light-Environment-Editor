@@ -1,4 +1,5 @@
 lightEnv = {}
+
 --Network stuff for client-server communication
 util.AddNetworkString("Environments_client_redownloadlightmaps")
 util.AddNetworkString("Environments_client_changeLight")
@@ -8,35 +9,13 @@ util.AddNetworkString("Environments_client_forceradiosityzero")
 util.AddNetworkString("Environments_client_forcedisablespecular")
 util.AddNetworkString("Environments_client_stopSoundscape")
 
---Convar setup
---Lighting stuff
-local env_ambientLight_cv = CreateConVar("Environment_ambientLightLevel", "12", FCVAR_NONE, "", 1, 26)
-local env_sunLight_cv = CreateConVar("Environment_SunLightLevel", "12", FCVAR_NONE, "", 1, 26)
+util.AddNetworkString("Environments_client_updateDarkenWater")
 
---Lets people disable the fix for non-world lights (if they want to do that for some reason)
-local env_changeLightStyle_cv = CreateConVar("Environment_ChangeLightStyle", "1", FCVAR_NONE, "", 0, 1)
-
---Stuff for messing with other convars (So you can fix/hide certain issues automatically for all players)
-local env_disableSkyBox_cv = CreateConVar("Environment_ForceDisabledSkybox", "0", FCVAR_NONE, "", 0, 1)
-local env_disableCubemaps_cv = CreateConVar("Environment_ForceDisabledCubemaps", "0", FCVAR_NONE, "", 0, 1)
-local env_disableDetailProps_cv = CreateConVar("Environment_ForceDisabledDetailProps", "0", FCVAR_NONE, "", 0, 1)
-local env_radiosityZero_cv = CreateConVar("Environment_ForceRadiosityZero", "0", FCVAR_NONE, "", 0, 1)
-
---Water fog darkening
-local env_darkenWater_cv = CreateConVar("Environment_DarkenWater", "1", FCVAR_NONE, "", 0, 1)
-local env_darkenRopes_cv = CreateConVar("Environment_DarkenRopes", "0", FCVAR_NONE, "", 0, 1)
-
---Map Materials
-local env_noStaticSelfIllum = CreateConVar("Environment_DisableStaticSelfIllum", "0", FCVAR_NONE, "", 0, 1)
-
---Should values be reset on cleanup
-local env_resetOnCleanup = CreateConVar("Environment_ResetOnCleanup", "1", FCVAR_NONE, "", 0, 1)
-
---Hiding things
-local env_hideBeams_cv = CreateConVar("Environment_Hide_Beams", "0", FCVAR_NONE, "", 0, 1)
-local env_hideSprites_cv = CreateConVar("Environment_Hide_Sprites", "0", FCVAR_NONE, "", 0, 1)
+util.AddNetworkString("Environments_server_setcv")
 
 include("lightenv/sv_staticproplighting.lua")
+include("lightenv/sh_materials.lua")
+include("lightenv/sh_cvars.lua")
 
 
 
@@ -65,27 +44,10 @@ hook.Add("InitPostEntity", "Environments_init", function()
 	end
 
 	SetGlobalInt("environment_lightstyle", availableLightStyles[1])
-
-	--Stuff for the new less terrible water darkening
-	lightEnv.defaultWaterFogs = {}
-	for i, v in ipairs(game.GetWorld():GetBrushSurfaces()) do
-		if v:IsWater() then
-			local mat = v:GetMaterial()
-			local fogCol = mat:GetVector("$fogcolor")
-			if fogCol then
-				table.insert(lightEnv.defaultWaterFogs, {
-					["Material"] = mat,
-					["Fog"] = fogCol * 1 --Create a copy not a reference
-				})
-			end
-		end
-	end
-
 	SetGlobalInt("environment_ambientLightLevel", 12)
 end)
 
 
---TODO: force r_drawdetailprops 0
 cvars.AddChangeCallback("Environment_ForceDisabledSkybox", function(convar_name, value_old, value_new)
 	net.Start("Environments_client_forcedisablesky")
 		net.WriteBool(tobool(value_new))
@@ -104,6 +66,7 @@ cvars.AddChangeCallback("Environment_ForceRadiosityZero", function(convar_name, 
 		net.WriteBool(tobool(value_new))
 	net.Broadcast()
 end)
+
 cvars.AddChangeCallback("Environment_ForceDisabledDetailProps", function(convar_name, value_old, value_new)
 	net.Start("Environments_client_forcedisabledetailprops")
 		net.WriteBool(tobool(value_new))
@@ -137,6 +100,7 @@ concommand.Add("Environment_Destroy_Sprites", function(player)
 		v:Remove()
 	end
 end)
+
 concommand.Add("Environment_Destroy_SmokeVolume", function(player)
 	if not player:IsSuperAdmin() then return end
 	local Smokes = ents.FindByClass("func_smokevolume")
@@ -182,15 +146,15 @@ cvars.AddChangeCallback("Environment_ambientLightLevel", function(convar_name, v
 	if CurTime() - lightEnv_LastChange < 0.5 then return end --Stops people from crashing their game by changing ambient light too often
 	timer.Simple(0.5, function()
 		--Delay the code actually running and grab the convar when it does so it sets it to whatever value the slider was left on
-		local pattern = string.char(96 + env_ambientLight_cv:GetInt())
+		local pattern = string.char(96 + lightEnv.ambientLight_cv:GetInt())
 		engine.LightStyle(0, pattern)
 		timer.Simple(1, function()
 			net.Start("Environments_client_redownloadlightmaps")
 			net.Broadcast()
 		end)
 
-		SetGlobalInt("environment_ambientLightLevel", env_ambientLight_cv:GetInt()) --Set a global variable so we can access this clientside
-		lightEnv_updateDarkenWater()
+		SetGlobalInt("environment_ambientLightLevel", lightEnv.ambientLight_cv:GetInt()) --Set a global variable so we can access this clientside
+		lightEnv.updateDarkenWater()
 	end)
 
 	lightEnv_LastChange = CurTime()
@@ -215,7 +179,7 @@ cvars.AddChangeCallback("Environment_ChangeLightStyle", function(convar_name, va
 end)
 
 hook.Add("OnEntityCreated", "UpdateLamps", function(ent)
-	if not(env_changeLightStyle_cv:GetBool() and ent:GetClass() == "env_projectedtexture") then return end
+	if not(lightEnv.changeLightStyle_cv:GetBool() and ent:GetClass() == "env_projectedtexture") then return end
 	timer.Simple(0.001, function()
 		if not ent:IsValid() then return end
 		local style = GetGlobalInt("environment_lightstyle", 64)
@@ -224,17 +188,8 @@ hook.Add("OnEntityCreated", "UpdateLamps", function(ent)
 end)
 
 cvars.AddChangeCallback("Environment_DarkenWater", function(convar_name, value_old, value_new)
-	lightEnv_updateDarkenWater() --This is called in amblight too because that affects how dark/light it makes the water
+	lightEnv.updateDarkenWater() --This is called in amblight too because that affects how dark/light it makes the water
 end)
-
-function lightEnv_updateDarkenWater()
-	if not lightEnv.defaultWaterFogs then return end
-	local darken = GetGlobalInt("environment_ambientLightLevel") / 12
-	darken = (env_darkenWater_cv:GetBool() and darken) or 1
-	for i, v in ipairs(lightEnv.defaultWaterFogs) do
-		v.Material:SetVector("$fogcolor", v.Fog * darken)
-	end
-end
 
 cvars.AddChangeCallback("Environment_DarkenRopes", function(convar_name, value_old, value_new)
 	if tobool(value_new) then
@@ -264,20 +219,21 @@ cvars.AddChangeCallback("Environment_DarkenRopes", function(convar_name, value_o
 	end
 end)
 
+
 hook.Add( "PreCleanupMap", "Environment_Cleanup", function()
-	if not env_resetOnCleanup:GetBool() then return end
-	env_ambientLight_cv:SetInt(12)
-	env_sunLight_cv:SetInt(12)
+	if not lightEnv.resetOnCleanup:GetBool() then return end
+	lightEnv.ambientLight_cv:SetInt(12)
+	lightEnv.sunLight_cv:SetInt(12)
 
-	env_darkenRopes_cv:SetBool(false)
+	lightEnv.darkenRopes_cv:SetBool(false)
 
-	env_disableSkyBox_cv:SetBool(false)
-	env_disableCubemaps_cv:SetBool(false)
-	env_disableDetailProps_cv:SetBool(false)
-	env_radiosityZero_cv:SetBool(false)
+	lightEnv.disableSkyBox_cv:SetBool(false)
+	lightEnv.disableCubemaps_cv:SetBool(false)
+	lightEnv.disableDetailProps_cv:SetBool(false)
+	lightEnv.radiosityZero_cv:SetBool(false)
 
-	env_noStaticSelfIllum:SetBool(false)
+	lightEnv.noStaticSelfIllum:SetBool(false)
 
-	env_hideBeams_cv:SetBool(false)
-	env_hideSprites_cv:SetBool(false)
+	lightEnv.hideBeams_cv:SetBool(false)
+	lightEnv.hideSprites_cv:SetBool(false)
 end )

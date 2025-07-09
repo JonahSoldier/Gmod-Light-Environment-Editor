@@ -1,3 +1,8 @@
+lightEnv = {}
+
+include("lightenv/sh_cvars.lua")
+include("lightenv/sh_materials.lua")
+
 --Make dynamic lights have a non-black lightstyle by default
 local defaultDlight
 if defaultDlight == nil then defaultDlight = DynamicLight end
@@ -37,23 +42,20 @@ net.Receive("Environments_client_forcedisablespecular", function(len, ply)
 	timer.Simple(5, function() RunConsoleCommand("mat_specular", 0) end)
 end)
 
-local skyboxConvar = GetConVar("Environment_ForceDisabledSkybox")
 cvars.AddChangeCallback("r_3dsky", function(convar_name, value_old, value_new)
-	if skyboxConvar:GetBool() and tobool(value_new) then
+	if lightEnv.disableSkyBox_cv:GetBool() and tobool(value_new) then
 		RunConsoleCommand("r_3dsky", 0)
 	end
 end)
 
-local detailPropsConvar = GetConVar("Environment_ForceDisabledDetailProps")
 cvars.AddChangeCallback("r_drawdetailprops", function(convar_name, value_old, value_new)
-	if detailPropsConvar:GetBool() and tobool(value_new) then
+	if lightEnv.disableDetailProps_cv:GetBool() and tobool(value_new) then
 		RunConsoleCommand("r_drawdetailprops", 0)
 	end
 end)
 
-local radiosityConvar = GetConVar("Environment_ForceRadiosityZero")
 cvars.AddChangeCallback("r_radiosity", function(convar_name, value_old, value_new)
-	if radiosityConvar:GetBool() and tobool(value_new) then
+	if lightEnv.radiosityZero_cv:GetBool() and tobool(value_new) then
 		RunConsoleCommand("r_radiosity", 0)
 	end
 end)

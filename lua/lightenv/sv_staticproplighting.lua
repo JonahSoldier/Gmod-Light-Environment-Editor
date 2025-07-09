@@ -1,4 +1,12 @@
---Not super happy with how I structured this, but it works fine.
+--[[TODO: This file needs to be re-written. 
+	I was lazy about how I actually read data from the .bsp here. It's entirely possible to read it properly,
+	(and I have done that in other addons since), but I went for a quicker solution when I wrote this.
+
+	This also needs to be reworked to run on both client and server (like I've done for water darkening). 
+	I mistakenly assumed these changes were networked because on p2p servers and singleplayer changing
+	a material on the server changes it for the host too. This isn't the case for dedicated though
+	(and probably not for other clients connected to p2p). I'm surprised no one has reported this as an issue.
+--]]
 
 local function readStaticPropMaterials(callOnFinish)
 	file.AsyncRead( "maps/" .. game.GetMap() .. ".bsp" , "GAME", function( fileName, gamePath, status, data )
